@@ -82,4 +82,5 @@ with gr.Blocks(title="Bias Intelligence Dashboard") as demo:
     refresh_button.click(fn=refresh_articles, outputs=article_selector)
     run_button.click(fn=run_analysis, inputs=article_selector, outputs=[bias_summary, bias_explanation, bias_score_plot])
 
-demo.launch()
+demo.launch(server_name="0.0.0.0", server_port=8000)
+
