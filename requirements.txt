@@ -1,0 +1,7 @@
+gradio
+pandas
+plotly
+google-cloud-bigquery
+google-cloud-bigquery-storage
+bigframes
+db-dtypes
