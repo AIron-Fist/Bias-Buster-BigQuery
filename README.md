@@ -1,4 +1,5 @@
-# Bias-Buster-BigQuery
+## Bias Intelligence Dashboard
+## See Beyond the Story: Bias Under the Lens. Powered by BigQuery & Gemini
 
 ## Overview
 
