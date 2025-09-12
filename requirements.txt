@@ -1,6 +1,0 @@
-gradio
-pandas
-plotly
-google-cloud-bigquery
-google-auth
-matplotlib
