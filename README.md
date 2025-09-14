@@ -1,104 +1,119 @@
-### Bias Intelligence Dashboard
-
+# Bias Intelligence Dashboard  
 See Beyond the Story: Bias Under the Lens. Powered by BigQuery & Gemini
 
-The Bias Intelligence Dashboard is an interactive tool that uses Google Cloud's BigQuery and the Gemini LLM to analyze news articles for various forms of bias. Users can explore different topics, get a summary of identified biases, and view interactive visualizations of sentiment and bias scores.
+An interactive notebook that uses Google Cloud’s BigQuery and the Gemini LLM to analyze news articles for various forms of bias. Explore topics, get automated bias summaries, and view interactive visualizations of sentiment and bias-score forecasts.
 
------
+---
 
-### Impact and Innovation
+## Impact and Innovation
 
-  * **Promoting Digital Literacy:** The dashboard identifies framing, selection, and other biases to help users critically evaluate news.
-  * **Objective Analysis:** It uses the Gemini LLM (via BigQuery's `ML.GENERATE_TEXT` function) to provide consistent and automated bias detection across many articles.
-  * **Data-Driven Insights:** The system scales with BigQuery and BigFrames to forecast bias trends and visualize sentiment distribution in the data.
+- Promoting Digital Literacy: Identifies framing, selection, and other biases to help users critically evaluate news.  
+- Objective Analysis: Leverages Gemini via BigQuery’s `ML.GENERATE_TEXT` for consistent, automated bias detection.  
+- Data-Driven Insights: Scales with BigQuery and BigFrames to forecast bias trends and visualize sentiment distributions.  
 
------
+---
 
-### Prerequisites
+## Prerequisites
 
-  * **Google Cloud Project**: A Google Cloud project with billing enabled, specifically `bias-buster-471818`.
-  * **APIs**: Both the **BigQuery API** and **Vertex AI API** must be enabled.
-  * **Service Account**: A JSON key file for a service account with the following IAM roles:
-      * BigQuery Data Editor
-      * BigQuery Job User
-      * BigQuery Read Session User
-      * Vertex AI User
-  * **Software**:
-      * Python 3.8+
-      * The libraries listed in `requirements.txt`
-      * `git`
-      * Google Cloud SDK and `gsutil`
+- Google Cloud project **bias-buster-471818** with billing enabled  
+- BigQuery API and Vertex AI API enabled  
+- Service account JSON key with roles:  
+  - BigQuery Data Editor  
+  - BigQuery Job User  
+  - BigQuery Read Session User  
+  - Vertex AI User  
+- Python 3.8+ and Git installed  
+- Google Cloud SDK (`gcloud`, `bq`, `gsutil`)  
+- Python libraries from `requirements.txt`  
 
------
+---
 
-### Setup Instructions
+## 1. Google Cloud Setup
 
-#### 1\. Google Cloud Setup
+### 1.1 Create BigQuery Dataset  
+```bash
+bq --location=us-central1 mk \
+  --dataset bias-buster-471818:bias_buster_dataset
+```
 
-  * **Create BigQuery Dataset**: Use the `bq` command-line tool to create the dataset for the project.
-    ```bash
-    bq mk --dataset bias-buster-471818:bias_buster_dataset
-    ```
-  * **Create Gemini Model**: Open the BigQuery editor and run the following SQL command. Be sure to replace `YOUR_CONNECTION_ID` with your BigQuery–Vertex AI connection ID.
-    ```sql
-    CREATE OR REPLACE MODEL `bias_buster_dataset.gemini_flash_model`
-    REMOTE WITH CONNECTION `us-central1.YOUR_CONNECTION_ID`
-    OPTIONS (
-      endpoint = 'gemini-1.5-flash-preview-0514'
-    );
-    ```
+### 1.2 Create Remote Gemini Model  
+In BigQuery console, run (replace `YOUR_CONN` with your connection ID, e.g. `bias_buster`):  
+```sql
+CREATE OR REPLACE MODEL
+  `bias-buster-471818.bias_buster_dataset.gemini_flash_model`
+REMOTE WITH CONNECTION
+  `us-central1.YOUR_CONN`
+OPTIONS (
+  endpoint = 'gemini-2.0-flash-001'
+);
+```
 
-#### 2\. Data Acquisition & Loading
+---
 
-  * **Download Data**: Visit the Webhose free-news repo to download a news snapshot (e.g., “Crime, Law and Justice”) as a ZIP file.
+## 2. Data Acquisition & Loading
 
-  * **Consolidate & Upload**:
+### 2.1 Download & Merge  
+1. Download the ZIP from Webhose:  
+   https://github.com/Webhose/free-news-datasets/blob/master/News_Datasets/Crime%2C%20Law%20and%20Justice_negative_20250511073514.zip  
+2. Unzip into `News_Datasets/` locally.  
+3. Merge all JSON files into one JSONL via a small Python script:  
+   ```python
+   import glob, json
 
-      * Unzip the files into a directory like `News_Datasets/`.
-      * Run a Python script to merge the individual JSON files into a single `JSONL` file.
-      * Upload the consolidated `JSONL` file to a Google Cloud Storage (GCS) bucket.
+   with open('consolidated_articles.jsonl', 'w') as out:
+       for path in glob.glob('News_Datasets/*.json'):
+           for record in json.load(open(path)):
+               out.write(json.dumps(record) + '\n')
+   ```
 
-  * **Load into BigQuery**: Load the `JSONL` file from GCS into the `news_articles_placeholder` table.
+### 2.2 Upload to GCS  
+```bash
+gsutil cp consolidated_articles.jsonl gs://YOUR_BUCKET/
+```
 
-    ```bash
-    bq load \
-      --autodetect \
-      --source_format=NEWLINE_DELIMITED_JSON \
-      bias_buster_dataset.news_articles_placeholder \
-      gs://your-gcs-bucket-name/consolidated_articles.json
-    ```
+### 2.3 Load into BigQuery  
+```bash
+bq --location=us-central1 load \
+  --project_id=bias-buster-471818 \
+  --autodetect \
+  --source_format=NEWLINE_DELIMITED_JSON \
+  bias_buster_dataset.news_articles_placeholder \
+  gs://YOUR_BUCKET/consolidated_articles.jsonl
+```
 
-#### 3\. Local Environment Setup
+---
 
-  * **Clone Repository**: Clone the project repository and change into the directory.
-    ```bash
-    git clone https://github.com/AIron-Fist/Bias-Buster-BigQuery.git
-    cd Bias-Buster-BigQuery
-    ```
-  * **Install Dependencies**: Install the required Python libraries using `pip`.
-    ```bash
-    pip install -r requirements.txt
-    ```
-* **Set Environment Variable**: Point `GOOGLE_APPLICATION_CREDENTIALS` at your service account key file. Do this in the same terminal session where you launch Jupyter Notebook.
+## 3. Local Environment Setup
 
-   **Windows (cmd):**
+```bash
+git clone https://github.com/AIron-Fist/Bias-Buster-BigQuery.git
+cd Bias-Buster-BigQuery
+pip install -r requirements.txt
+```
+
+Set the service-account key environment variable:
+
+- macOS / Linux  
   ```bash
-  set GOOGLE_APPLICATION_CREDENTIALS=C:\path\to\your-service-account-key.json
+  export GOOGLE_APPLICATION_CREDENTIALS="/path/to/key.json"
   ```
-  **macOS / Linux (Bash):**
-  ```bash
-  export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your-service-account-key.json"
+- Windows (cmd)  
+  ```cmd
+  set GOOGLE_APPLICATION_CREDENTIALS=C:\path\to\key.json
   ```
 
-#### 4\. Running the Dashboard
+---
 
-To run the dashboard, you must execute the provided Jupyter Notebook.
+## 4. Running the Dashboard Notebook
 
-  * Start a Jupyter server in your project directory:
-    ```bash
-    python -m notebook
-    ```
-  * Open the `Bias_Buster_BigQuery.ipynb` file in your web browser from the Jupyter file explorer.
-  * Execute the cell within the notebook to launch the Gradio dashboard.
+1. In your project directory, start Jupyter:  
+   ```bash
+   python -m notebook
+   ```
+2. In the browser file explorer, open **Bias_Buster_BigQuery.ipynb**.  
+3. Run all cells to launch the Gradio dashboard interface.  
+4. Copy the local URL (e.g., http://127.0.0.1:8888) into your browser to interact with the Bias Intelligence Dashboard.
 
-The dashboard will provide a URL (e.g., `http://127.0.0.1:7860`) that you can open in your browser to start using the tool.
+---
+
+You’re ready to explore media bias with real-world news data, powered end-to-end by BigQuery, Gemini, and BigFrames.
