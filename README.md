@@ -175,8 +175,3 @@ python app.py
 ```
 
 Open the URL printed in your terminal (e.g., `http://127.0.0.1:7860`) to access the Bias Intelligence Dashboard.  
-```bash
-# Example:
-# Running on local URL:  http://127.0.0.1:7860
-```
-```
