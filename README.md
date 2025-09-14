@@ -1,6 +1,8 @@
 # Bias Intelligence Dashboard  
 ## See Beyond the Story: Bias Under the Lens. Powered by BigQuery & Gemini
 
+---
+
 ## Overview
 
 The Bias Intelligence Dashboard is a Gradio-based Python application that leverages Google Cloud’s BigQuery and Gemini LLM to analyze news articles for various forms of bias. Users can explore topics, review bias summaries, and visualize sentiment and bias scores in an interactive dashboard.
@@ -10,147 +12,171 @@ The Bias Intelligence Dashboard is a Gradio-based Python application that levera
 ## Impact and Innovation
 
 - **Promoting Digital Literacy**  
-  Empowers users to become critical consumers of news by exposing framing, selection, and other biases in media coverage.
+  Exposes framing, selection, and other biases to empower critical news consumption.
 
 - **Objective Analysis**  
-  Automates bias detection with the Gemini model, providing a consistent framework across multiple articles to reveal coverage patterns missed by manual review.
+  Uses Gemini LLM (`ML.GENERATE_TEXT`) for consistent, automated bias detection across hundreds of articles.
 
 - **Data-Driven Insights**  
-  Uses BigQuery to handle large news-article datasets efficiently and offers bias-trend forecasting and sentiment visualizations.
+  Scales with BigQuery and BigFrames to forecast bias trends and visualize sentiment distributions.
 
 ---
 
 ## Data Flow
 
-### 1. Data Ingestion
+1. **Data Ingestion**  
+   - Download Webhose news snapshots locally via Python.  
+   - Upload consolidated JSONL to Google Cloud Storage.
 
-- News articles from the Webhose repository are downloaded and processed locally using a Python script.  
-- The consolidated data is uploaded to a Google Cloud Storage bucket.
+2. **Data Processing & Analysis**  
+   1. BigQuery Load Job imports JSONL into  
+      `bias_buster_dataset.news_articles_placeholder`.  
+   2. SQL scripts flatten & clean nested fields.  
+   3. `ML.GENERATE_TEXT` (Gemini) extracts nine bias categories & scores.  
+   4. BigFrames forecasts bias-score trends over time.
 
-### 2. Data Processing & Analysis (within Google Cloud)
-
-1. A BigQuery Load Job ingests the data from Google Cloud Storage into a BigQuery table.  
-2. SQL scripts in BigQuery flatten and clean the data.  
-3. BigQuery ML calls the Gemini LLM (`ML.GENERATE_TEXT`) to analyze articles, extract bias categories, and calculate bias scores.  
-4. BigFrames runs a forecasting pipeline on the data to predict bias score trends.
-
-### 3. User Interface & Visualization
-
-- The processed data and analysis results from BigQuery power a frontend application built with Gradio.  
-- The Gradio dashboard presents an interactive view, including bias scores, trend forecasts, and article excerpts.
+3. **UI & Visualization**  
+   - Gradio frontend queries BigQuery for bias scores, forecasts, and excerpts.  
+   - Interactive charts and drill-downs enable exploration.
 
 ---
 
 ## Metrics
 
-My solution directly addresses the lack of transparency in media bias. These metrics quantify its impact and efficiency:
-
 - **Time-to-Insight**  
-  Reduced manual hours to seconds for a batch of articles (e.g., 10 articles in 12 seconds vs. ~2 hours manually).
+  Reduced manual review from ~2 hours to ~12 seconds for a 10-article batch.
 
 - **Discovery Rate of Nuanced Bias (DRNB)**  
   ```text
-  DRNB = (# subtle-bias flags by tool) 
+  DRNB = (# subtle-bias flags by tool)
          ÷ (human-annotated subtle-bias flags)
   ```  
-  Demonstrates a 100% improvement over manual processing on a labeled set of 200 articles.
+  100 % improvement vs. manual on a 200-article ground truth set.
 
 - **User Engagement**  
-  Future metric “Session Depth” will measure the average number of article detailed-view clicks per dashboard session to quantify deeper exploration.
+  Future “Session Depth” will track average detail-view clicks per dashboard session.
 
 ---
 
 ## Prerequisites
 
-- A Google Cloud project with billing enabled  
+- Google Cloud project **bias-buster-471818** with billing enabled  
 - BigQuery API enabled  
 - Vertex AI API enabled  
-- A service account with all of the following roles:  
+- Service account JSON key with roles:  
   - BigQuery Data Editor  
   - BigQuery Job User  
   - BigQuery Read Session User  
   - Vertex AI User  
-- Python 3.8 or later and the libraries listed in `requirements.txt`
+- Python 3.8+ and the libraries in `requirements.txt`  
+- `git`, Google Cloud SDK, and `gsutil` installed locally
 
 ---
 
 ## Setup Instructions
 
-### Google Cloud Setup
+### 1. Google Cloud Setup
 
-1. Create a BigQuery dataset named `bias_buster_dataset`.  
-2. Create the Gemini model in BigQuery:  
+1. **Create BigQuery dataset**  
+   ```bash
+   bq mk --dataset bias-buster-471818:bias_buster_dataset
+   ```
+
+2. **Create Gemini model**  
+   In the BigQuery editor, run:
    ```sql
    CREATE OR REPLACE MODEL `bias_buster_dataset.gemini_flash_model`
    REMOTE WITH CONNECTION `us-central1.YOUR_CONNECTION_ID`
    OPTIONS (
      endpoint = 'gemini-1.5-flash-preview-0514'
    );
-   ```  
+   ```
    Replace `YOUR_CONNECTION_ID` with your BigQuery–Vertex AI connection ID.
 
 ---
 
-## Data Acquisition and Loading
+### 2. Data Acquisition & Loading
 
-### Step 1: Download the Data
+#### Step 1: Download the Data
 
-1. Visit the Webhose free-news datasets repository:  
+1. Visit the Webhose free-news repo:  
    https://github.com/Webhose/free-news-datasets  
-2. Download a dataset (e.g., the “Crime, Law and Justice” snapshot) as a zipped archive.
+2. Download a snapshot (e.g., “Crime, Law and Justice”) as ZIP.
 
-### Step 2: Consolidate and Upload to Cloud Storage
+#### Step 2: Consolidate & Upload to GCS
 
-1. Unzip the archive. You should see multiple JSON files in `News_Datasets/`.  
-2. Merge all JSON files into one newline-delimited JSON (JSONL) file:  
+1. Unzip into `News_Datasets/`.  
+2. Merge JSON files into one JSONL:
    ```python
-   import json
-   import glob
+   import json, glob
 
    data = []
-   for filepath in glob.glob("News_Datasets/*.json"):
-       with open(filepath, "r") as f:
+   for path in glob.glob("News_Datasets/*.json"):
+       with open(path) as f:
            data.extend(json.load(f))
 
    with open("consolidated_articles.json", "w") as out:
-       for record in data:
-           out.write(json.dumps(record) + "\n")
+       for rec in data:
+           out.write(json.dumps(rec) + "\n")
    ```
-3. Upload the consolidated JSONL file to your Google Cloud Storage bucket:  
+3. Upload to GCS:
    ```bash
    gsutil cp consolidated_articles.json \
      gs://your-gcs-bucket-name/consolidated_articles.json
    ```
 
+#### Step 3: Load into BigQuery
+
+```bash
+bq load \
+  --autodetect \
+  --source_format=NEWLINE_DELIMITED_JSON \
+  bias_buster_dataset.news_articles_placeholder \
+  gs://your-gcs-bucket-name/consolidated_articles.json
+```
+
 ---
 
-## Local Environment Setup
+### 3. Local Environment Setup
 
-1. Clone the repository:  
+1. **Clone the repo**  
    ```bash
    git clone https://github.com/your-org/Bias-Buster-BigQuery.git
    cd Bias-Buster-BigQuery
    ```
-2. Set your Google credentials environment variable:  
-   - On Linux/macOS:  
+
+2. **Set environment variables**  
+   - **Linux/macOS**  
      ```bash
-     export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/keyfile.json"
-     ```  
-   - On Windows (Command Prompt):  
-     ```cmd
-     set GOOGLE_APPLICATION_CREDENTIALS="C:\path\to\your\keyfile.json"
+     export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account.json"
+     export GOOGLE_CLOUD_PROJECT="bias-buster-471818"
+     export BIGFRAMES_LOCATION="us-central1"
      ```
-3. Install dependencies:  
+   - **Windows (PowerShell)**  
+     ```powershell
+     $env:GOOGLE_APPLICATION_CREDENTIALS = "C:\path\to\service-account.json"
+     $env:GOOGLE_CLOUD_PROJECT        = "bias-buster-471818"
+     $env:BIGFRAMES_LOCATION          = "us-central1"
+     ```
+
+3. **Install dependencies**  
    ```bash
    pip install -r requirements.txt
    ```
 
+ ```
+
 ---
 
-## Running the Application
+## 4. Running the Application
 
-Launch the Gradio dashboard:  
 ```bash
 python app.py
-```  
-Open the local URL displayed in your terminal (e.g., `http://127.0.0.1:7860`) in a browser to access the Bias Intelligence Dashboard.  
+```
+
+Open the URL printed in your terminal (e.g., `http://127.0.0.1:7860`) to access the Bias Intelligence Dashboard.  
+```bash
+# Example:
+# Running on local URL:  http://127.0.0.1:7860
+```
+```
