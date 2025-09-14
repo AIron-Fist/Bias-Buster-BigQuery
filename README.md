@@ -86,7 +86,7 @@ To run the dashboard, you must execute the provided Jupyter Notebook.
 
   * Start a Jupyter server in your project directory:
     ```bash
-    jupyter notebook
+    python -m notebook
     ```
   * Open the `Bias_Buster_BigQuery.ipynb` file in your web browser from the Jupyter file explorer.
   * Execute the cell within the notebook to launch the Gradio dashboard.
