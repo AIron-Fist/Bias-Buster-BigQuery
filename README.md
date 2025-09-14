@@ -83,7 +83,7 @@ The Bias Intelligence Dashboard is an interactive tool that uses Google Cloud's 
 
    **Windows (cmd):**
   ```bash
-  set GOOGLE_APPLICATION_CREDENTIALS=/path/to/your-service-account-key.json
+  set GOOGLE_APPLICATION_CREDENTIALS=C:\path\to\your-service-account-key.json
   ```
   **macOS / Linux (Bash):**
   ```bash
