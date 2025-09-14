@@ -79,6 +79,17 @@ The Bias Intelligence Dashboard is an interactive tool that uses Google Cloud's 
     ```bash
     pip install -r requirements.txt
     ```
+* **Set Environment Variable**: Point `GOOGLE_APPLICATION_CREDENTIALS` at your service account key file. Do this in the same terminal session where you launch Jupyter Notebook.
+
+  **Windows (PowerShell):**
+  ```powershell
+  $env:GOOGLE_APPLICATION_CREDENTIALS = "C:\path\to\your-service-account-key.json"
+  ```
+
+  **macOS / Linux (Bash):**
+  ```bash
+  export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your-service-account-key.json"
+  ```
 
 #### 4\. Running the Dashboard
 
