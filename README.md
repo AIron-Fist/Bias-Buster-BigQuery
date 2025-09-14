@@ -72,7 +72,7 @@ The Bias Intelligence Dashboard is an interactive tool that uses Google Cloud's 
 
   * **Clone Repository**: Clone the project repository and change into the directory.
     ```bash
-    git clone https://github.com/your-org/Bias-Buster-BigQuery.git
+    git clone https://github.com/AIron-Fist/Bias-Buster-BigQuery.git
     cd Bias-Buster-BigQuery
     ```
   * **Install Dependencies**: Install the required Python libraries using `pip`.
