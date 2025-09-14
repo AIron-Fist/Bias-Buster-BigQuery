@@ -75,19 +75,6 @@ The Bias Intelligence Dashboard is an interactive tool that uses Google Cloud's 
     git clone https://github.com/your-org/Bias-Buster-BigQuery.git
     cd Bias-Buster-BigQuery
     ```
-  * **Set Environment Variables**: Configure the necessary environment variables for authentication and project details.
-      * **Linux/macOS**:
-        ```bash
-        export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account.json"
-        export GOOGLE_CLOUD_PROJECT="bias-buster-471818"
-        export BIGFRAMES_LOCATION="us-central1"
-        ```
-      * **Windows (PowerShell)**:
-        ```powershell
-        $env:GOOGLE_APPLICATION_CREDENTIALS = "C:\path\to\service-account.json"
-        $env:GOOGLE_CLOUD_PROJECT        = "bias-buster-471818"
-        $env:BIGFRAMES_LOCATION          = "us-central1"
-        ```
   * **Install Dependencies**: Install the required Python libraries using `pip`.
     ```bash
     pip install -r requirements.txt
